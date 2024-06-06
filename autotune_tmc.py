@@ -56,20 +56,36 @@ class TuningGoal(str, Enum):
     SILENT = "silent" # StealthChop at all speeds
     PERFORMANCE = "performance" # SpreadCycle at all speeds
 
+class AutotuneTMCHandler:
+    def __init__(self, config):
+        self.printer = config.get_printer()
+        self.steppers = []
+        gcode   = self.printer.lookup_object('gcode')
+
+        gcode.register_mux_command("AUTOTUNE_TMC", "STEPPER", 'all',
+                                self.cmd_AUTOTUNE_TMC,
+                                desc=self.cmd_AUTOTUNE_TMC_help)    
+
+    cmd_AUTOTUNE_TMC_help = "Apply autotuning configuration to TMC stepper driver"
+
+    def cmd_AUTOTUNE_TMC(self, gcmd):
+        logging.info("AUTOTUNE_TMC all")
+
+        for stepper in self.steppers:
+            stepper.tune_driver()
+
+    def add_stepper(self, stepper):
+        self.steppers.append(stepper)
+
+def load_config(config):
+    return AutotuneTMCHandler(config)
+
 class AutotuneTMC:
     def __init__(self, config):
         self.printer = config.get_printer()
 
-        # Load motor database
-        pconfig = self.printer.lookup_object('configfile')
-        dirname = os.path.dirname(os.path.realpath(__file__))
-        filename = os.path.join(dirname, 'motor_database.cfg')
-        try:
-            motor_db = pconfig.read_config(filename)
-        except Exception:
-            raise config.error("Cannot load config '%s'" % (filename,))
-        for motor in motor_db.get_prefix_sections(''):
-            self.printer.load_object(motor_db, motor.get_name())
+        self.handler = self.printer.load_object(config, 'autotune_tmc')
+
 
         # Now find our stepper and driver in the running Klipper config
         self.name = config.get_name().split(None, 1)[-1]
@@ -158,53 +174,60 @@ class AutotuneTMC:
             pass
         if self.fclk is None:
             self.fclk = 12.5e6
-        self.tune_driver()
+
+        self.handler.add_stepper(self)
 
     cmd_AUTOTUNE_TMC_help = "Apply autotuning configuration to TMC stepper driver"
     def cmd_AUTOTUNE_TMC(self, gcmd):
         logging.info("AUTOTUNE_TMC %s", self.name)
         tgoal = gcmd.get('TUNING_GOAL', TUNING_GOAL).lower()
-        if tgoal is not None:
-            try:
-                self.tuning_goal = TuningGoal(tgoal)
-            except ValueError:
-                # TODO: add some logging/error here in case the tuning_goal doesn't exist
-                pass
+
+        try:
+            parsed_tgoal = TuningGoal(tgoal)
+        except Exception as e:
+            raise gcmd.error("Unknown TUNING_GOAL '%s'" % (tgoal,))
+
+        extra_hysteresis = gcmd.get_int('EXTRA_HYSTERESIS', None)
+        tbl = gcmd.get_int('TBL', None)
+        toff = gcmd.get_int('TOFF', None)
+        tpfd = gcmd.get_int('TPFD', None)
+        sgt = gcmd.get_int('SGT', None)
+        sg4_thrs = gcmd.get_int('SG4_THRS', None)
+        voltage = gcmd.get_float('VOLTAGE', None)
+        overvoltage_vth = gcmd.get_float('OVERVOLTAGE_VTH', None)
+
+        self.set_autotune_parameters(tgoal=parsed_tgoal, extra_hysteresis=extra_hysteresis, tbl=tbl, toff=toff, tpfd=tpfd, sgt=sgt, sg4_thrs=sg4_thrs, voltage=voltage, overvoltage_vth=overvoltage_vth)
+        self.tune_driver()
+
+    def set_autotune_parameters(self, tgoal=None, extra_hysteresis=None, tbl=None, toff=None, tpfd=None, sgt=None, sg4_thrs=None, voltage=None, overvoltage_vth=None):
+
+        if tgoal is not None:          
             if self.tuning_goal == TuningGoal.AUTO:
                 self.tuning_goal = TuningGoal.SILENT if self.auto_silent else TuningGoal.PERFORMANCE
-        extra_hysteresis = gcmd.get_int('EXTRA_HYSTERESIS', None)
         if extra_hysteresis is not None:
             if extra_hysteresis >= 0 or extra_hysteresis <= 8:
                 self.extra_hysteresis = extra_hysteresis
-        tbl = gcmd.get_int('TBL', None)
         if tbl is not None:
             if tbl >= 0 or tbl <= 3:
                 self.tbl = tbl
-        toff = gcmd.get_int('TOFF', None)
         if toff is not None:
             if toff >= 1 or toff <= 15:
                 self.toff = toff
-        tpfd = gcmd.get_int('TPFD', None)
         if tpfd is not None:
             if tpfd >= 0 or tpfd <= 15:
                 self.tpfd = tpfd
-        sgt = gcmd.get_int('SGT', None)
         if sgt is not None:
             if sgt >= -64 or sgt <= 63:
                 self.sgt = sgt
-        sg4_thrs = gcmd.get_int('SG4_THRS', None)
         if sg4_thrs is not None:
             if sg4_thrs >= 0 or sg4_thrs <= 255:
                 self.sg4_thrs = sg4_thrs
-        voltage = gcmd.get_float('VOLTAGE', None)
         if voltage is not None:
             if voltage >= 0.0 or voltage <= 60.0:
                 self.voltage = voltage
-        overvoltage_vth = gcmd.get_float('OVERVOLTAGE_VTH', None)
         if overvoltage_vth is not None:
             if overvoltage_vth >= 0.0 or overvoltage_vth <= 60.0:
                 self.overvoltage_vth = overvoltage_vth
-        self.tune_driver()
 
     def tune_driver(self, print_time=None):
         _currents = self.tmc_cmdhelper.current_helper.get_current()

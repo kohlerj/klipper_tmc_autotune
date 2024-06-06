@@ -23,7 +23,26 @@ To install this plugin, run the installation script using the following command 
 wget -O - https://raw.githubusercontent.com/andrewmcgr/klipper_tmc_autotune/main/install.sh | bash
 ```
 
+Include the motor database to your printer.cfg
+
+```ini
+# printer.cfg
+
+[include motor_database.cfg]
+
+```
+
+The plugin is activated by calling AUTOTUNE_TMC for all `AUTOTUNE_TMC STEPPER=all` or each individual motor `AUTOTUNE_TMC STEPPER=<name>` in your startup gcode. It is recommended to call it directly in your startup code.
+
+```gcode
+# STARTUP MACRO
+
+AUTOTUNE_TMC STEPPER=all
+
+```
+
 The installation script will AUTOMATICALLY add the following to your `moonraker.conf` to enable automatic updates if it is not there already:
+
 ```ini
 [update_manager klipper_tmc_autotune]
 type: git_repo
@@ -112,6 +131,8 @@ steps_per_revolution: 200
 
 ## Removing this Klipper extension
 
-Commenting out all `[autotune_tmc xxxx]` sections from your config and restarting Klipper will completely deactivate the plugin. So you can enable/disable it as you like.
+Autotune TMC is only enabled is you call AUTOTUNE_TMC somewhere in your gcode files.
+
+Based on the recommendations above, simple comment out `AUTOTUNE_TMC STEPPER=all` from your startup code to disable the plugin.
 
 If you want to uninstall it completely, remove the moonraker update manager section from your `moonraker.conf` file, delete the `~/klipper_tmc_autotune` folder on your Pi and restart Klipper and Moonraker.
