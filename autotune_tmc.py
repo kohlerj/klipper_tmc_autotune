@@ -86,16 +86,6 @@ class AutotuneTMC:
 
         self.handler = self.printer.load_object(config, 'autotune_tmc')
 
-        # Load motor database
-        pconfig = self.printer.lookup_object('configfile')
-        dirname = os.path.dirname(os.path.realpath(__file__))
-        filename = os.path.join(dirname, 'motor_database.cfg')
-        try:
-            motor_db = pconfig.read_config(filename)
-        except Exception:
-            raise config.error("Cannot load config '%s'" % (filename,))
-        for motor in motor_db.get_prefix_sections(''):
-            self.printer.load_object(motor_db, motor.get_name())
 
         # Now find our stepper and driver in the running Klipper config
         self.name = config.get_name().split(None, 1)[-1]
