@@ -41,7 +41,8 @@ AUTOTUNE_TMC STEPPER=all
 
 ```
 
-Then, add the following to your `moonraker.conf` to enable automatic updates:
+The installation script will AUTOMATICALLY add the following to your `moonraker.conf` to enable automatic updates if it is not there already:
+
 ```ini
 [update_manager klipper_tmc_autotune]
 type: git_repo

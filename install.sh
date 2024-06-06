@@ -48,6 +48,14 @@ function link_extension {
     ln -srfn "${AUTOTUNETMC_PATH}/motor_database.cfg" "${USER_CONFIG_PATH}/motor_database.cfg"
 }
 
+function add_updater {
+    update_section=$(grep -c '\[update_manager[a-z ]* klipper_tmc_autotune\]' $MOONRAKER_CONFIG || true)
+    if [ "$update_section" -eq 0 ]; then
+        echo -n "[INSTALL] Adding update manager to moonraker.conf..."
+        cat ${K_SHAKETUNE_PATH}/moonraker.conf >> $MOONRAKER_CONFIG
+    fi
+}
+
 function restart_klipper {
     echo "[POST-INSTALL] Restarting Klipper..."
     sudo systemctl restart klipper
@@ -63,4 +71,5 @@ printf "======================================\n\n"
 preflight_checks
 check_download
 link_extension
+add_updater
 restart_klipper
