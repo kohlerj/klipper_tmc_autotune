@@ -23,6 +23,15 @@ To install this plugin, run the installation script using the following command 
 wget -O - https://raw.githubusercontent.com/andrewmcgr/klipper_tmc_autotune/main/install.sh | bash
 ```
 
+The plugin is activated by calling AUTOTUNE_TMC for all `AUTOTUNE_TMC STEPPER=all` or each individual motor `AUTOTUNE_TMC STEPPER=<name>` in your startup gcode.
+
+```gcode
+# STARTUP MACRO
+
+AUTOTUNE_TMC STEPPER=all
+
+```
+
 Then, add the following to your `moonraker.conf` to enable automatic updates:
 ```ini
 [update_manager klipper_tmc_autotune]
