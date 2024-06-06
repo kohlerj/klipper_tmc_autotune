@@ -3,6 +3,8 @@
 KLIPPER_PATH="${HOME}/klipper"
 AUTOTUNETMC_PATH="${HOME}/klipper_tmc_autotune"
 USER_CONFIG_PATH="${HOME}/printer_data/config"
+MOONRAKER_CONFIG="${HOME}/printer_data/config/moonraker.conf"
+
 
 set -eu
 export LC_ALL=C
