@@ -2,6 +2,7 @@
 
 KLIPPER_PATH="${HOME}/klipper"
 AUTOTUNETMC_PATH="${HOME}/klipper_tmc_autotune"
+USER_CONFIG_PATH="${HOME}/printer_data/config"
 
 set -eu
 export LC_ALL=C
@@ -44,7 +45,15 @@ function link_extension {
     echo "[INSTALL] Linking extension to Klipper..."
     ln -srfn "${AUTOTUNETMC_PATH}/autotune_tmc.py" "${KLIPPER_PATH}/klippy/extras/autotune_tmc.py"
     ln -srfn "${AUTOTUNETMC_PATH}/motor_constants.py" "${KLIPPER_PATH}/klippy/extras/motor_constants.py"
-    ln -srfn "${AUTOTUNETMC_PATH}/motor_database.cfg" "${KLIPPER_PATH}/klippy/extras/motor_database.cfg"
+    ln -srfn "${AUTOTUNETMC_PATH}/motor_database.cfg" "${USER_CONFIG_PATH}/motor_database.cfg"
+}
+
+function add_updater {
+    update_section=$(grep -c '\[update_manager[a-z ]* klipper_tmc_autotune\]' $MOONRAKER_CONFIG || true)
+    if [ "$update_section" -eq 0 ]; then
+        echo -n "[INSTALL] Adding update manager to moonraker.conf..."
+        cat ${K_SHAKETUNE_PATH}/moonraker.conf >> $MOONRAKER_CONFIG
+    fi
 }
 
 function restart_klipper {
@@ -62,4 +71,5 @@ printf "======================================\n\n"
 preflight_checks
 check_download
 link_extension
+add_updater
 restart_klipper
